@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Industrial Engineering Student Council Expenses</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; }
+    .container {
+  max-width: 700px;         /* You can make this wider, e.g. 600px or 800px */
+  margin: 40px auto;
+  background: #f8f9fa;         /* <-- Change this to your desired color */
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+}
+    h1 { text-align: center; color: #2c3e50; }
+    .tabs { display: flex; justify-content: center; margin-bottom: 20px; }
+    .tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab.active { border-bottom: 2px solid #3498db; font-weight: bold; color: #3498db; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { width: 100%; padding: 10px; background: #3498db; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #2980b9; }
+    .info { margin-top: 20px; }
+    .hidden { display: none; }
+    table { margin-top: 10px; }
+    th, td { text-align: left; }
+  </style>
+</head>
+<head>
+  ...
+  <style>
+    .admin-controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+..big-btn {
+  padding: 6px 12px;
+  font-size: 0.95em;
+  border-radius: 5px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 120px;
+}
+
+.big-btn:hover {
+  background: #2980b9;
+}
+    body { background: #f4f4f4; }
+    .container { max-width: 400px; margin: 40px auto; }
+    /* More styles */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Student Council Expenses</h1>
+    <div class="tabs">
+      <div class="tab active" id="studentTab">Student Login</div>
+      <div class="tab" id="adminTab">Admin Login</div>
+    </div>
+    <form id="studentForm">
+      <div class="form-group">
+        <label for="studentId">Student ID Number</label>
+        <input type="text" id="studentId" required>
+      </div>
+      <button type="submit">Track Expenses</button>
+    </form>
+    <form id="adminForm" class="hidden">
+      <div class="form-group">
+        <label for="adminUser">Username</label>
+        <input type="text" id="adminUser" required>
+      </div>
+      <div class="form-group">
+        <label for="adminPass">Password</label>
+        <input type="password" id="adminPass" required>
+      </div>
+      <button type="submit">Admin Login</button>
+    </form>
+    <div class="info" id="info"></div>
+  </div>
+  
+
+  <script>
+    const studentTab = document.getElementById('studentTab');
+    const adminTab = document.getElementById('adminTab');
+    const studentForm = document.getElementById('studentForm');
+    const adminForm = document.getElementById('adminForm');
+    const info = document.getElementById('info');
+
+    // Use your SheetDB API link here
+    const SHEETDB_API = "https://sheetdb.io/api/v1/bbud14417pcuj";
+
+    let sheetData = {};
+
+    function fetchSheetData(callback) {
+  fetch(SHEETDB_API)
+    .then(res => res.json())
+    .then(data => {
+      sheetData = {};
+      data.forEach(row => {
+        const idStr = String(row.ID).trim();
+        sheetData[idStr] = {
+          name: row.Name,
+          balance: parseInt(row.Balance, 10),
+          expenses: row.Expenses ? JSON.parse(row.Expenses) : [],
+          paid: row.Paid ? JSON.parse(row.Paid) : []
+        };
+      });
+      if (callback) callback();
+    });
+}
+    const adminCreds = { username: "admin", password: "password123" };
+// ---- Paste here ----
+function calculateBalance(student) {
+  if (!student.expenses || student.expenses.length === 0) {
+    return 0;
+  }
+  return student.expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+}
+    // Switch tabs
+    studentTab.onclick = () => {
+      studentTab.classList.add('active');
+      adminTab.classList.remove('active');
+      studentForm.classList.remove('hidden');
+      adminForm.classList.add('hidden');
+      info.innerHTML = '';
+    };
+    adminTab.onclick = () => {
+      adminTab.classList.add('active');
+      studentTab.classList.remove('active');
+      adminForm.classList.remove('hidden');
+      studentForm.classList.add('hidden');
+      info.innerHTML = '';
+    };
+
+    // Show student dashboard
+    function showStudentData(student) {
+  document.querySelector('.tabs').style.display = 'none';
+  studentForm.style.display = 'none';
+  adminForm.style.display = 'none';
+  if (student.fileUrl) {
+  info.innerHTML += `
+    <div style="margin:20px 0;">
+      <button class="download-btn" onclick="window.open('${student.fileUrl}', '_blank')">Open/Download File</button>
+    </div>
+  `;
+}
+info.innerHTML = `
+    <h3>Welcome, ${student.name}</h3>
+    <p>Remaining Balance: ₱${calculateBalance(student)}</p>
+    <p>Current Expenses:</p>
+    <ul>${student.expenses.map(exp => `<li>${exp.item}: ₱${exp.amount}</li>`).join('')}</ul>
+    <button onclick="location.reload()">Logout</button>
+  `;
+}
+5
+    function showAdminDashboard() {
+  document.querySelector('.tabs').style.display = 'none';
+  studentForm.style.display = 'none';
+  adminForm.style.display = 'none';
+
+  // Build table rows
+ let rows = Object.entries(sheetData)
+  .filter(([id, s]) => id !== "shared") // <-- This line excludes the shared row
+  .map(([id, s]) =>
+    `<tr>
+      <td>${id}</td>
+      <td>${s.name}</td>
+      <td>₱${calculateBalance(s)}</td>
+      <td>${s.expenses.map(exp => `${exp.item}: ₱${exp.amount}`).join('<br>')}</td>
+      <td>${s.paid ? s.paid.map(exp => `${exp.item}: ₱${exp.amount}`).join('<br>') : ''}</td>
+    </tr>`
+  ).join('');
+
+  info.innerHTML = `
+    <h3>Admin Dashboard</h3>
+    <p>All Students:</p>
+    <table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Balance</th>
+          <th>Expenses</th>
+          <th>Paid Expenses</th>
+          
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+    <button onclick="addExpensePrompt()">Add New Expense</button>
+    <button onclick="addStudentPrompt()">Add New Student</button>
+    <button onclick="removeStudentPrompt()">Remove Student</button>
+    <button onclick="markExpensePaidPrompt()">Mark Expense as Paid</button>
+    <button onclick="location.reload()">Logout</button>
+  `;
+  info.innerHTML = `
+  <h3>Student Council Expenses</h3>
+  <div class="admin-controls">
+    <button class="big-btn" onclick="addExpensePrompt()">Add New Expense</button>
+    <button class="big-btn" onclick="addStudentPrompt()">Add New Student</button>
+    <button class="big-btn" onclick="removeStudentPrompt()">Remove Student</button>
+    <button class="big-btn" onclick="markExpensePaidPrompt()">Mark Expense as Paid</button>
+  </div>
+  <div class="admin-section">
+    <h3>Admin Dashboard</h3>
+    <p>All Students:</p>
+    <table border="1" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Balance</th>
+          <th>Expenses</th>
+          <th>Paid Expenses</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+    <div class="form-group">
+      <label for="fileUrl">Share a File Link for Students:</label>
+      <input type="text" id="fileUrl" placeholder="Paste file URL here">
+      <button type="button" onclick="addFileLink()">Submit File Link</button>
+    </div>
+    <button onclick="location.reload()">Logout</button>
+  </div>
+`;
+}
+
+
+    // Handle student login
+    studentForm.onsubmit = function(e) {
+      e.preventDefault();
+      const id = String(document.getElementById('studentId').value).trim();
+      if (sheetData[id]) {
+        showStudentData(sheetData[id]);
+      } else {
+        info.innerHTML = `<p style="color:red;">Student ID not found.</p>`;
+      }
+    };
+
+    // Handle admin login
+    adminForm.onsubmit = function(e) {
+      e.preventDefault();
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value;
+      if (user === adminCreds.username && pass === adminCreds.password) {
+        fetchSheetData(showAdminDashboard); // Always loads the latest data
+      } else {
+        info.innerHTML = `<p style="color:red;">Invalid admin credentials.</p>`;
+      }
+    }
+
+    function updateStudentInSheet(id, student, callback) {
+      fetch(`${SHEETDB_API}/ID/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            Balance: student.balance,
+            Expenses: JSON.stringify(student.expenses)
+          }
+        })
+      }).then(() => { if (callback) callback(); });
+    }
+    function showStudentData(student) {
+  document.querySelector('.tabs').style.display = 'none';
+  studentForm.style.display = 'none';
+  adminForm.style.display = 'none';
+
+  // Fetch shared file link
+  fetch(`${SHEETDB_API}/search?ID=shared`)
+    .then(res => res.json())
+    .then(sharedRows => {
+      let fileLinkHtml = "";
+      if (sharedRows.length && sharedRows[0].File) {
+        fileLinkHtml = `<a href="${sharedRows[0].File}" target="_blank">View/Download File</a>`;
+      }5
+      info.innerHTML = `
+        <h3>Welcome, ${student.name}</h3>
+        <p>Remaining Balance: ₱${calculateBalance(student)}</p>
+        <p>Current Expenses:</p>
+        <ul>${student.expenses.map(exp => `<li>${exp.item}: ₱${exp.amount}</li>`).join('')}</ul>
+        ${fileLinkHtml}
+        <button onclick="location.reload()">Logout</button>
+      `;
+    });
+}
+
+    window.markExpensePaidPrompt = function() {
+  const id = prompt("Enter the Student ID to mark an expense as paid:");
+  if (!id || !sheetData[id]) {
+    alert("Student ID not found.");
+    return;
+  }
+  const student = sheetData[id];
+  if (!student.expenses.length) {
+    alert("This student has no unpaid expenses.");
+    return;
+  }
+  // List expenses for selection
+  let expList = student.expenses.map((exp, idx) => `${idx + 1}. ${exp.item}: ₱${exp.amount}`).join('\n');
+  const expNum = parseInt(prompt(`Select the expense number to mark as paid:\n${expList}`), 10) - 1;
+  if (isNaN(expNum) || expNum < 0 || expNum >= student.expenses.length) {
+    alert("Invalid selection.");
+    return;
+  }
+  // Move the expense from expenses to paid
+  const paidExpense = student.expenses.splice(expNum, 1)[0];
+  if (!student.paid) student.paid = [];
+  student.paid.push(paidExpense);
+
+  // Update SheetDB (also update Paid column)
+  fetch(`${SHEETDB_API}/ID/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: {
+        Expenses: JSON.stringify(student.expenses),
+        Paid: JSON.stringify(student.paid)
+      }
+    })
+  }).then(() => {
+    alert("Expense marked as paid!");
+    fetchSheetData(showAdminDashboard);
+  });
+};
+window.addFileLink = function() {
+  const fileUrl = document.getElementById('fileUrl').value.trim();
+  if (!fileUrl) {
+    alert("Please enter a file URL.");
+    return;
+  }
+  // PATCH the 'shared' row in SheetDB to save the file link
+  fetch(`${SHEETDB_API}/ID/shared`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data: { File: fileUrl } })
+  }).then(() => {
+    alert("File link shared!");
+    document.getElementById('fileUrl').value = "";
+  });
+};
+
+    window.addStudentPrompt = function() {
+      const id = prompt("Enter new Student ID:");
+      if (!id || sheetData[id]) {
+        alert("Invalid or duplicate ID.");
+        return;
+      }
+      const name = prompt("Enter Student Name:");
+      if (!name) {
+        alert("Name is required.");
+        return;
+      }
+      const balance = parseInt(prompt("Enter Starting Balance:"), 10);
+      if (isNaN(balance)) {
+        alert("Invalid balance.");
+        return;
+      }
+      // Add to SheetDB
+      fetch(SHEETDB_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            ID: id,
+            Name: name,
+            Balance: balance,
+            Expenses: "[]"
+          }
+        })
+      }).then(() => {
+        alert("Student added!");
+        fetchSheetData(showAdminDashboard);
+      });
+    };
+
+    window.removeStudentPrompt = function() {
+      const id = prompt("Enter the Student ID to remove:");
+      if (!id || !sheetData[id]) {
+        alert("Student ID not found.");
+        return;
+      }
+      if (!confirm(`Are you sure you want to remove ${sheetData[id].name} (${id})? This cannot be undone.`)) {
+        return;
+      }
+      fetch(`${SHEETDB_API}/ID/${id}`, {
+        method: "DELETE"
+      }).then(() => {
+        alert("Student removed!");
+        fetchSheetData(showAdminDashboard);
+      });
+    };
+    window.addExpensePrompt = function() {
+  const id = prompt("Enter the Student ID to add an expense:");
+  if (!id || !sheetData[id]) {
+    alert("Student ID not found.");
+    return;
+  }
+  const student = sheetData[id];
+  const item = prompt("Enter the expense item:");
+  if (!item) {
+    alert("Expense item is required.");
+    return;
+  }
+  const amount = parseInt(prompt("Enter the amount:"), 10);
+  if (isNaN(amount)) {
+    alert("Invalid amount.");
+    return;
+  }
+  student.expenses.push({ item, amount });
+  fetch(`${SHEETDB_API}/ID/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data: { Expenses: JSON.stringify(student.expenses) } })
+  }).then(() => {
+    alert("Expense added!");
+    fetchSheetData(showAdminDashboard);
+  });
+};
+
+    // Initial load
+    fetchSheetData();
+  </script>
+</body>
+</html>
